@@ -1,24 +1,87 @@
-import React from 'react';
-import logo from './logo.svg';
+import React, { useState, useRef } from 'react';
+import Button from '@mui/material/Button';
+import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
+import { ethers, BigNumber } from 'ethers';
+
 import './App.css';
 
+const FREE_ADDRESS = '0x4089b4000291a4e7c15714a1f1e630f4845ed645';
+
 function App() {
+  const [account, setAccount] = useState<string | undefined>()
+  const [signer, setSigner] = useState<any | undefined>()
+  const [erc20, setErc20] = useState<any |  undefined>()
+  const [freeBalance, setFreeBalance] = useState<string |  undefined>()
+  const mintAmountRef = useRef<HTMLInputElement>()
+
+  const connectWallet = async () => {
+    if (!window.ethereum) {
+      window.alert('Please install MetaMask');
+      return;
+    }
+
+    const provider = new ethers.providers.Web3Provider(window.ethereum)
+
+    const accounts = await provider.send('eth_requestAccounts', []);
+    const signer = provider.getSigner()
+    if (accounts.length) {
+      setAccount(accounts[0])
+    }
+    setSigner(signer)
+  }
+
+  const connectToContract = async () => {
+    const abi = [
+      'function balanceOf(address owner) view returns (uint256)',
+      'function mint(address to, uint256 amount) public',
+    ];
+
+    const erc20 = new ethers.Contract(FREE_ADDRESS, abi, signer);
+    const balance = await erc20.balanceOf(signer.getAddress())
+    setErc20(erc20)
+    setFreeBalance(ethers.utils.formatUnits(balance, 18));
+    console.log(mintAmountRef.current?.value)
+  }
+
+  const mintOneToken = async () => {
+    const amount = parseInt(mintAmountRef.current?.value || '')
+    await erc20.mint(signer.getAddress(), BigNumber.from(10).pow(18).mul(amount))
+  }
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
+      <p>Wallet Address: {account ? account : '**Connect wallet**'}</p>
+      <p>Free token balance: {freeBalance ? freeBalance : '**Connect contract**'}</p>
+      <br />
+      <br />
+      <Stack spacing={2} direction="row" justifyContent="center">
+        <Button
+          variant="outlined"
+          onClick={connectWallet}
         >
-          Learn React
-        </a>
-      </header>
+          Connect Wallet
+        </Button>
+        <Button
+          variant="contained"
+          onClick={connectToContract}
+          disabled={!account}
+        >
+          Connect Contract
+        </Button>
+        <Button
+          variant="contained"
+          onClick={mintOneToken}
+          disabled={!freeBalance || !mintAmountRef.current}
+        >
+          Mint Token/s
+        </Button>
+        <TextField
+          inputRef={mintAmountRef}
+          placeholder="Amount to mint"
+          type="number"
+        />
+      </Stack>
     </div>
   );
 }
