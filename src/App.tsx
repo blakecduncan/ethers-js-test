@@ -44,9 +44,11 @@ function App() {
     console.log(mintAmountRef.current?.value)
   }
 
-  const mintOneToken = async () => {
+  const mintToken = async () => {
     const amount = parseInt(mintAmountRef.current?.value || '')
-    await erc20.mint(signer.getAddress(), BigNumber.from(10).pow(18).mul(amount))
+    if (amount) {
+      await erc20.mint(signer.getAddress(), BigNumber.from(10).pow(18).mul(amount))
+    }
   }
 
   return (
@@ -71,8 +73,8 @@ function App() {
         </Button>
         <Button
           variant="contained"
-          onClick={mintOneToken}
-          disabled={!freeBalance || !mintAmountRef.current}
+          onClick={mintToken}
+          disabled={!freeBalance}
         >
           Mint Token/s
         </Button>
